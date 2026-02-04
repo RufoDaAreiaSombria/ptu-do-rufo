@@ -28,27 +28,26 @@ Hooks.once("ready", () => {
 
 function applyOldStatTotals(system) {
   const stats = system.stats;
-  let levelUpPoints = system.levelUpPoints?.value ?? 0;
 
-  const nature = system.nature;
-  const natureUp = nature?.increase;
-  const natureDown = nature?.decrease;
+  let levelUpPoints =
+    typeof system.levelUpPoints === "number"
+      ? system.levelUpPoints
+      : system.levelUpPoints?.value ?? 0;
 
   for (const [key, value] of Object.entries(stats)) {
-    // subtotal base
+    // -------------------
+    // SUBTOTAL BASE
+    // -------------------
+    const natureMod = getNatureModifier(key, system.nature);
+
     let sub =
       value.value +
       value.mod.value +
       value.mod.mod +
-      value.levelUp;
+      value.levelUp +
+      natureMod;
 
     levelUpPoints -= value.levelUp;
-
-    // -------------------
-    // NATURE (+2 / -2)
-    // -------------------
-    if (key === natureUp) sub += 2;
-    if (key === natureDown) sub -= 2;
 
     // -------------------
     // COMBAT STAGES
@@ -69,5 +68,12 @@ function applyOldStatTotals(system) {
     value.total = total;
   }
 
-  system.levelUpPoints.value = levelUpPoints;
+  // -------------------
+  // LEVEL UP POINTS (safe)
+  // -------------------
+  if (typeof system.levelUpPoints === "number") {
+    system.levelUpPoints = levelUpPoints;
+  } else if (system.levelUpPoints?.value !== undefined) {
+    system.levelUpPoints.value = levelUpPoints;
+  }
 }
