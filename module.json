@@ -1,13 +1,15 @@
 {
   "id": "ptu-do-rufo",
   "title": "PTU do Rufo (teste)",
-  "description": "Teste pra concertar as coisas quebradas do sistema de PTU. Ainda estou aprendendo",
+  "description": "Teste pra consertar as coisas quebradas do sistema de PTU. Ainda estou aprendendo",
   "version": "1.0.0",
   "author": "Rufo da Areia Sombria",
-  "minimumCoreVersion": "13",
-  "compatibleCoreVersion": "13",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
   "systems": ["ptr1e"],
   "esmodules": ["main.js"],
-  "manifest": "https://raw.githubusercontent.com/RufoDaAreiaSombria/ptu-do-rufo/tree/main/module.json",
+  "manifest": "https://raw.githubusercontent.com/RufoDaAreiaSombria/ptu-do-rufo/main/module.json",
   "download": "https://github.com/RufoDaAreiaSombria/ptu-do-rufo/archive/refs/heads/main.zip"
 }
