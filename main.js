@@ -1,22 +1,32 @@
 Hooks.once("ready", () => {
-  console.log("PTU Old Stats | Ativo");
-
-  // segurança: só roda se o sistema for PTU
   if (game.system.id !== "ptr1e") return;
 
-  // guarda referência da função nova (caso queira restaurar depois)
-  const originalCalc = CONFIG.PTU.helpers?.calculateStatTotal;
+  console.log("PTU Old Stats | Patchando Actor");
 
-  // substitui pela versão antiga
-  CONFIG.PTU.helpers.calculateStatTotal = function (
-    levelUpPoints,
-    stats,
-    options = {}
-  ) {
-    return calculateOldStatTotal(levelUpPoints, stats, options);
+  const ActorPTR = CONFIG.Actor.documentClass;
+
+  const originalPrepareDerivedData = ActorPTR.prototype.prepareDerivedData;
+
+  ActorPTR.prototype.prepareDerivedData = function () {
+    originalPrepareDerivedData.call(this);
+
+    const system = this.system;
+    if (!system?.stats) return;
+
+    const result = calculateOldStatTotal(
+      system.levelUpPoints?.value ?? 0,
+      system.stats,
+      {
+        twistedPower: system.twistedPower,
+        ignoreStages: false
+      }
+    );
+
+    system.stats = result.stats;
+    system.levelUpPoints.value = result.levelUpPoints;
   };
 
-  console.log("PTU Old Stats | Fórmula antiga aplicada");
+  console.log("PTU Old Stats | Fórmula antiga aplicada no Actor");
 });
 
 function calculateOldStatTotal(levelUpPoints, stats, { twistedPower, ignoreStages }) {
