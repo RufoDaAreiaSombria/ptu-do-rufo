@@ -91,6 +91,19 @@ Hooks.once("ready", () => {
   };
 
   console.log("PTU Old Stats | Patch aplicado com sucesso");
+  console.log("PTU Old Stats | Recalculando actors no load");
+
+  for (const actor of game.actors) {
+    try {
+      actor.prepareData();
+    } catch (err) {
+      console.warn(
+        "PTU Old Stats | Falha ao recalcular actor no load:",
+        actor.name,
+        err
+      );
+    }
+  }
 });
 
 function applyOldStatTotals(system) {
