@@ -1,13 +1,34 @@
+const NATURE_STAT_MAP = {
+  "Attack": "atk",
+  "Defense": "def",
+  "Special Attack": "spatk",
+  "Special Defense": "spdef",
+  "Speed": "spd",
+  "HP": "hp",
+
+  // variações comuns
+  "Atk": "atk",
+  "Def": "def",
+  "SpAtk": "spatk",
+  "SpDef": "spdef",
+  "Spd": "spd"
+};
+
 function getNatureModifier(statKey, nature) {
   if (!nature) return 0;
 
-  const up = nature.up ?? nature.increase;
-  const down = nature.down ?? nature.decrease;
+  const upRaw = nature.up ?? nature.increase;
+  const downRaw = nature.down ?? nature.decrease;
+
+  const up = NATURE_STAT_MAP[upRaw];
+  const down = NATURE_STAT_MAP[downRaw];
 
   if (statKey === up) return 2;
   if (statKey === down) return -2;
+
   return 0;
 }
+
 
 Hooks.once("ready", () => {
   if (game.system.id !== "ptu") return;
