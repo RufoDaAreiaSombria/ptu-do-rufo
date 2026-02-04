@@ -91,19 +91,25 @@ Hooks.once("ready", () => {
   };
 
   console.log("PTU Old Stats | Patch aplicado com sucesso");
-  console.log("PTU Old Stats | Recalculando actors no load");
+});
 
-  for (const actor of game.actors) {
+Hooks.once("ready", async () => {
+  if (game.system.id !== "ptu") return;
+
+  console.log("PTU Fix | Recalculando Actors no load");
+
+  const actors = game.actors.filter(a => a.type === "pokemon");
+
+  for (const actor of actors) {
     try {
-      actor.prepareData();
+      // update vazio = força recalcular
+      await actor.update({});
     } catch (err) {
-      console.warn(
-        "PTU Old Stats | Falha ao recalcular actor no load:",
-        actor.name,
-        err
-      );
+      console.warn(`PTU Fix | Falha ao recalcular ${actor.name}`, err);
     }
   }
+
+  console.log("PTU Fix | Recalculo completo");
 });
 
 function applyOldStatTotals(system) {
