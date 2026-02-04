@@ -1,7 +1,8 @@
+console.log("PTU Old Stats | Patchando Actor");
+alert("PTU DO RUFO: main.js carregou");
+
 Hooks.once("ready", () => {
   if (game.system.id !== "ptr1e") return;
-
-  console.log("PTU Old Stats | Patchando Actor");
 
   const ActorPTR = CONFIG.Actor.documentClass;
 
