@@ -1,0 +1,13 @@
+{
+  "name": "ptu-do-rufo",
+  "title": "PTU do Rufo (teste)",
+  "description": "Teste pra concertar as coisas quebradas do sistema de PTU. Ainda estou aprendendo",
+  "version": "1.0.0",
+  "author": "Rufo da Areia Sombria",
+  "minimumCoreVersion": "13",
+  "compatibleCoreVersion": "13",
+  "systems": ["ptr1e"],
+  "esmodules": ["main.js"],
+  "manifest": "https://raw.githubusercontent.com/SEU_USUARIO/ptu-old-stats/main/module.json",
+  "download": "https://github.com/SEU_USUARIO/ptu-old-stats/archive/refs/heads/main.zip"
+}
