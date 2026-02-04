@@ -1,5 +1,5 @@
 Hooks.once("ready", () => {
-  if (game.system.id !== "ptr1e") return;
+  if (game.system.id !== "ptu") return;
 
   console.log("PTU Old Stats | Módulo ativo");
 
