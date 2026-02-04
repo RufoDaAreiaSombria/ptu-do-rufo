@@ -1,44 +1,55 @@
 Hooks.once("ready", () => {
-  if (game.system.id !== "ptu") return;
+  console.log("PTU Old Stats | Inicializando");
 
-  console.log("PTU Old Stats | Módulo ativo");
-
-  // pega o prototype real do sistema PTR
-  const ActorPTR = CONFIG.Actor.documentClass;
-
-  if (!ActorPTR?.prototype?.prepareData) {
-    console.error("PTU Old Stats | prepareData não encontrado");
+  if (game.system.id !== "ptu") {
+    console.warn("PTU Old Stats | Sistema não é PTU, abortando");
     return;
   }
 
-  const originalPrepareData = ActorPTR.prototype.prepareData;
+  const helpers = CONFIG.PTU?.helpers;
+  if (!helpers) {
+    console.error("PTU Old Stats | CONFIG.PTU.helpers não encontrado");
+    return;
+  }
 
-  ActorPTR.prototype.prepareData = function () {
-    // deixa o PTU fazer TUDO primeiro
-    originalPrepareData.call(this);
+  // guarda referência da função nova, se quiser restaurar depois
+  helpers._originalCalculateStatTotal ??=
+    helpers.calculateStatTotal;
 
-    // agora sim, ajusta apenas os totais
-    if (!this.system?.stats) return;
+  helpers.calculateStatTotal = calculateOldStatTotal;
 
-    applyOldStatTotals(this.system);
-  };
-
-  console.log("PTU Old Stats | Patch aplicado com sucesso");
+  console.log("PTU Old Stats | Fórmula OLD aplicada com sucesso");
 });
 
-function applyOldStatTotals(system) {
-  const stats = system.stats;
+/**
+ * Aplica bônus da Nature clássica (+2 / -2)
+ */
+function getNatureModifier(statKey, nature) {
+  if (!nature) return 0;
 
-  let levelUpPoints =
-    typeof system.levelUpPoints === "number"
-      ? system.levelUpPoints
-      : system.levelUpPoints?.value ?? 0;
+  const up = nature.up ?? nature.increase;
+  const down = nature.down ?? nature.decrease;
+
+  if (statKey === up) return 2;
+  if (statKey === down) return -2;
+  return 0;
+}
+
+/**
+ * Fórmula clássica de cálculo de stats do PTU
+ */
+function calculateOldStatTotal(levelUpPoints, stats, options = {}) {
+  const {
+    twistedPower = false,
+    ignoreStages = false,
+    nature = null
+  } = options;
 
   for (const [key, value] of Object.entries(stats)) {
     // -------------------
     // SUBTOTAL BASE
     // -------------------
-    const natureMod = getNatureModifier(key, system.nature);
+    const natureMod = getNatureModifier(key, nature);
 
     let sub =
       value.value +
@@ -50,30 +61,39 @@ function applyOldStatTotals(system) {
     levelUpPoints -= value.levelUp;
 
     // -------------------
+    // IGNORAR STAGES
+    // -------------------
+    if (ignoreStages) {
+      value.total = sub;
+      continue;
+    }
+
+    // -------------------
     // COMBAT STAGES
     // -------------------
     const stage =
       (value.stage?.value ?? 0) +
       (value.stage?.mod ?? 0);
 
-    let total;
     if (stage > 0) {
-      total = Math.floor(sub * stage * 0.2 + sub);
+      value.total = Math.floor(sub * stage * 0.2 + sub);
     } else if (stage < 0) {
-      total = Math.ceil(sub * stage * 0.1 + sub);
+      value.total = Math.ceil(sub * stage * 0.1 + sub);
     } else {
-      total = sub;
+      value.total = sub;
     }
-
-    value.total = total;
   }
 
   // -------------------
-  // LEVEL UP POINTS (safe)
+  // TWISTED POWER
   // -------------------
-  if (typeof system.levelUpPoints === "number") {
-    system.levelUpPoints = levelUpPoints;
-  } else if (system.levelUpPoints?.value !== undefined) {
-    system.levelUpPoints.value = levelUpPoints;
+  if (twistedPower && stats.atk && stats.spatk) {
+    const atk = stats.atk.total;
+    const spatk = stats.spatk.total;
+
+    stats.atk.total += Math.floor(spatk / 2);
+    stats.spatk.total += Math.floor(atk / 2);
   }
+
+  return { levelUpPoints, stats };
 }
