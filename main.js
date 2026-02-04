@@ -91,56 +91,42 @@ Hooks.once("ready", () => {
   };
 
   console.log("PTU Old Stats | Patch aplicado com sucesso");
-});
 
-Hooks.once("canvasReady", async () => {
-  for (const actor of game.actors) {
-    if (actor.type === "pokemon") {
-      await actor.update({});
+  setTimeout(() => {
+    console.log("PTU Old Stats | Recalculando actors no load");
+
+    for (const actor of game.actors.contents) {
+      try {
+        // guards ABSOLUTOS
+        if (!actor?.system?.stats) continue;
+        if (typeof actor.prepareData !== "function") continue;
+
+        actor.prepareData();
+      } catch (err) {
+        console.warn(
+          `PTU Old Stats | Falha ao recalcular actor no load: ${actor.name}`,
+          err
+        );
+      }
     }
-  }
+  }, 500);
 });
 
 function applyOldStatTotals(system) {
-  // ⛔ Guard 1: sistema ainda não pronto
-  if (
-    !system ||
-    !system.stats ||
-    typeof system.stats !== "object"
-  ) {
-    return;
-  }
-
-  // ⛔ Guard 2: levelUpPoints ainda é número cru (PTU ainda inicializando)
-  if (
-    system.levelUpPoints !== undefined &&
-    typeof system.levelUpPoints === "number"
-  ) {
-    return;
-  }
-
   const stats = system.stats;
   let levelUpPoints = system.levelUpPoints?.value ?? 0;
 
   for (const [key, value] of Object.entries(stats)) {
-    // ⛔ Guard 3: stat ainda não é objeto válido
-    if (!value || typeof value !== "object") continue;
-
-    // ⛔ Guard 4: PTU ainda não normalizou mod/stage
-    if (
-      typeof value.mod === "number" ||
-      typeof value.stage === "number"
-    ) {
-      continue;
-    }
+    const natureMod = getNatureModifier(key, system);
 
     const sub =
-      (value.value ?? 0) +
-      (value.mod?.value ?? 0) +
-      (value.mod?.mod ?? 0) +
-      (value.levelUp ?? 0);
+    value.value +
+    value.mod.value +
+    value.mod.mod +
+    value.levelUp +
+    natureMod;
 
-    levelUpPoints -= value.levelUp ?? 0;
+    levelUpPoints -= value.levelUp;
 
     const stage =
       (value.stage?.value ?? 0) +
@@ -155,15 +141,10 @@ function applyOldStatTotals(system) {
         : Math.ceil(sub * stage * 0.1 + sub);
     }
 
-    // ✅ só escreve no total (não toca em value/base/mod)
+    // ⚠️ MUITO IMPORTANTE:
+    // só muda o campo total, não o objeto inteiro
     value.total = total;
   }
 
-  // ⛔ Guard 5: só escreve se for objeto
-  if (
-    system.levelUpPoints &&
-    typeof system.levelUpPoints === "object"
-  ) {
-    system.levelUpPoints.value = levelUpPoints;
-  }
+  system.levelUpPoints.value = levelUpPoints;
 }
