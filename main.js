@@ -35,6 +35,7 @@ const NATURES = {
   Jolly:     { up: "spd", down: "spatk" },
   Naive:     { up: "spd", down: "spdef" },
 
+  // neutras (aumenta e diminui o mesmo stat)
   Composed:  { up: "hp", down: "hp" },
   Hardy:     { up: "atk", down: "atk" },
   Docile:    { up: "def", down: "def" },
@@ -45,59 +46,76 @@ const NATURES = {
 
 function getNatureModifier(statKey, system) {
   const natureName = system.nature?.value;
-  const nature = NATURES[natureName];
-  if (!nature || nature.up === nature.down) return 0;
+  if (!natureName) return 0;
 
-  if (statKey === nature.up) return statKey === "hp" ? 1 : 2;
-  if (statKey === nature.down) return statKey === "hp" ? -1 : -2;
+  const nature = NATURES[natureName];
+  if (!nature) return 0;
+
+  // neutra (up === down)
+  if (nature.up === nature.down) return 0;
+
+  if (statKey === nature.up) {
+    return statKey === "hp" ? 1 : 2;
+  }
+
+  if (statKey === nature.down) {
+    return statKey === "hp" ? -1 : -2;
+  }
+
   return 0;
 }
 
-function safe(obj, path, fallback = 0) {
-  return path.reduce((o, k) => (o && typeof o === "object" ? o[k] : undefined), obj) ?? fallback;
-}
-
-function applyOldStatTotals(system) {
-  if (!system?.stats) return;
-
-  for (const [key, stat] of Object.entries(system.stats)) {
-    const base = stat.value ?? stat.base ?? 0;
-    const levelUp = stat.levelUp ?? 0;
-    const modValue = safe(stat, ["mod", "value"]);
-    const modMod = safe(stat, ["mod", "mod"]);
-    const stage = safe(stat, ["stage", "value"]) + safe(stat, ["stage", "mod"]);
-    const nature = getNatureModifier(key, system);
-
-    let sub = base + levelUp + modValue + modMod + nature;
-
-    let total;
-    if (stage > 0) {
-      total = Math.floor(sub * (1 + stage * 0.2));
-    } else if (stage < 0 && key !== "hp") {
-      total = Math.ceil(sub * (1 + stage * 0.1));
-    } else {
-      total = sub;
-    }
-
-    stat.total = total;
-  }
-}
-
-Hooks.once("ready", async () => {
+Hooks.once("ready", () => {
   if (game.system.id !== "ptu") return;
 
   console.log("PTU Old Stats | Módulo ativo");
 
-  // espera o mundo terminar completamente
-  await new Promise(r => setTimeout(r, 500));
+  // pega o prototype real do sistema PTR
+  const ActorPTR = CONFIG.Actor.documentClass;
 
-  const actors = game.actors.filter(a => a.type === "pokemon");
-
-  for (const actor of actors) {
-    applyOldStatTotals(actor.system);
+  if (!ActorPTR?.prototype?.prepareData) {
+    console.error("PTU Old Stats | prepareData não encontrado");
+    return;
   }
 
-  console.log("PTU Old Stats | Recalculo limpo aplicado");
+  const originalPrepareData = ActorPTR.prototype.prepareData;
+
+  ActorPTR.prototype.prepareData = function () {
+    // deixa o PTU fazer TUDO primeiro
+    originalPrepareData.call(this);
+
+    // agora sim, ajusta apenas os totais
+    if (!this.system?.stats) return;
+
+    applyOldStatTotals(this.system);
+  };
+
+  console.log("PTU Old Stats | Patch aplicado com sucesso");
+});
+
+Hooks.once("canvasReady", async () => {
+  if (game.system.id !== "ptu") return;
+
+  console.log("PTU Old Stats | Limpando estado sujo dos Actors no load");
+
+  for (const actor of game.actors) {
+    // só Pokémon
+    if (actor.type !== "pokemon") continue;
+
+    try {
+      // update vazio força o PTR a recalcular
+      // é o equivalente a "mudar a Nature e voltar"
+      await actor.update({});
+    } catch (err) {
+      console.warn(
+        "PTU Old Stats | Falha ao atualizar actor no load:",
+        actor.name,
+        err
+      );
+    }
+  }
+
+  console.log("PTU Old Stats | Refresh inicial concluído");
 });
 
 function applyOldStatTotals(system) {
