@@ -2,7 +2,7 @@
   "id": "ptu-do-rufo",
   "title": "PTU do Rufo (teste)",
   "description": "Teste pra consertar as coisas quebradas do sistema de PTU. Ainda estou aprendendo",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": "Rufo da Areia Sombria",
   "compatibility": {
     "minimum": "13",
