@@ -94,45 +94,53 @@ Hooks.once("ready", () => {
 });
 
 Hooks.once("canvasReady", async () => {
-  if (game.system.id !== "ptu") return;
-
-  console.log("PTU Old Stats | Limpando estado sujo dos Actors no load");
-
   for (const actor of game.actors) {
-    // só Pokémon
-    if (actor.type !== "pokemon") continue;
-
-    try {
-      // update vazio força o PTR a recalcular
-      // é o equivalente a "mudar a Nature e voltar"
+    if (actor.type === "pokemon") {
       await actor.update({});
-    } catch (err) {
-      console.warn(
-        "PTU Old Stats | Falha ao atualizar actor no load:",
-        actor.name,
-        err
-      );
     }
   }
-
-  console.log("PTU Old Stats | Refresh inicial concluído");
 });
 
 function applyOldStatTotals(system) {
+  // ⛔ Guard 1: sistema ainda não pronto
+  if (
+    !system ||
+    !system.stats ||
+    typeof system.stats !== "object"
+  ) {
+    return;
+  }
+
+  // ⛔ Guard 2: levelUpPoints ainda é número cru (PTU ainda inicializando)
+  if (
+    system.levelUpPoints !== undefined &&
+    typeof system.levelUpPoints === "number"
+  ) {
+    return;
+  }
+
   const stats = system.stats;
   let levelUpPoints = system.levelUpPoints?.value ?? 0;
 
   for (const [key, value] of Object.entries(stats)) {
-    const natureMod = getNatureModifier(key, system);
+    // ⛔ Guard 3: stat ainda não é objeto válido
+    if (!value || typeof value !== "object") continue;
+
+    // ⛔ Guard 4: PTU ainda não normalizou mod/stage
+    if (
+      typeof value.mod === "number" ||
+      typeof value.stage === "number"
+    ) {
+      continue;
+    }
 
     const sub =
-    value.value +
-    value.mod.value +
-    value.mod.mod +
-    value.levelUp +
-    natureMod;
+      (value.value ?? 0) +
+      (value.mod?.value ?? 0) +
+      (value.mod?.mod ?? 0) +
+      (value.levelUp ?? 0);
 
-    levelUpPoints -= value.levelUp;
+    levelUpPoints -= value.levelUp ?? 0;
 
     const stage =
       (value.stage?.value ?? 0) +
@@ -147,10 +155,15 @@ function applyOldStatTotals(system) {
         : Math.ceil(sub * stage * 0.1 + sub);
     }
 
-    // ⚠️ MUITO IMPORTANTE:
-    // só muda o campo total, não o objeto inteiro
+    // ✅ só escreve no total (não toca em value/base/mod)
     value.total = total;
   }
 
-  system.levelUpPoints.value = levelUpPoints;
+  // ⛔ Guard 5: só escreve se for objeto
+  if (
+    system.levelUpPoints &&
+    typeof system.levelUpPoints === "object"
+  ) {
+    system.levelUpPoints.value = levelUpPoints;
+  }
 }
