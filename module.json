@@ -8,6 +8,6 @@
   "compatibleCoreVersion": "13",
   "systems": ["ptr1e"],
   "esmodules": ["main.js"],
-  "manifest": "https://raw.githubusercontent.com/SEU_USUARIO/ptu-old-stats/main/module.json",
-  "download": "https://github.com/SEU_USUARIO/ptu-old-stats/archive/refs/heads/main.zip"
+  "manifest": "https://raw.githubusercontent.com/RufoDaAreiaSombria/ptu-do-rufo/main/module.json",
+  "download": "https://github.com/RufoDaAreiaSombria/ptu-do-rufo/archive/refs/heads/main.zip"
 }
