@@ -1,36 +1,45 @@
-console.log("PTU Old Stats | Patchando Actor");
-alert("PTU DO RUFO: main.js carregou");
-
 Hooks.once("ready", () => {
   if (game.system.id !== "ptr1e") return;
 
-  const ActorPTR = CONFIG.Actor.documentClass;
+  console.log("PTU Old Stats | Aguardando PTU finalizar");
 
-  const originalPrepareDerivedData = ActorPTR.prototype.prepareDerivedData;
+  // espera o PTU terminar completamente
+  setTimeout(() => {
+    const ActorPTR = CONFIG.Actor.documentClass;
 
-  ActorPTR.prototype.prepareDerivedData = function () {
-    originalPrepareDerivedData.call(this);
+    if (!ActorPTR) {
+      console.error("PTU Old Stats | ActorPTR não encontrado");
+      return;
+    }
 
-    const system = this.system;
-    if (!system?.stats) return;
+    console.log("PTU Old Stats | Patchando Actor AGORA");
 
-    const result = calculateOldStatTotal(
-      system.levelUpPoints?.value ?? 0,
-      system.stats,
-      {
-        twistedPower: system.twistedPower,
-        ignoreStages: false
-      }
-    );
+    const originalPrepareDerivedData = ActorPTR.prototype.prepareDerivedData;
 
-    system.stats = result.stats;
-    system.levelUpPoints.value = result.levelUpPoints;
-  };
+    ActorPTR.prototype.prepareDerivedData = function () {
+      originalPrepareDerivedData.call(this);
 
-  console.log("PTU Old Stats | Fórmula antiga aplicada no Actor");
+      if (!this.system?.stats) return;
+
+      const result = calculateOldStatTotal(
+        this.system.levelUpPoints?.value ?? 0,
+        this.system.stats,
+        {
+          twistedPower: this.system.twistedPower,
+          ignoreStages: false
+        }
+      );
+
+      this.system.stats = result.stats;
+      this.system.levelUpPoints.value = result.levelUpPoints;
+    };
+
+    console.log("PTU Old Stats | Patch aplicado com sucesso");
+  }, 0);
 });
 
-function calculateOldStatTotal(levelUpPoints, stats, { twistedPower, ignoreStages }) {
+
+/*function calculateOldStatTotal(levelUpPoints, stats, { twistedPower, ignoreStages }) {
   for (const [key, value] of Object.entries(stats)) {
     const sub =
       value.value +
@@ -65,3 +74,4 @@ function calculateOldStatTotal(levelUpPoints, stats, { twistedPower, ignoreStage
 
   return { levelUpPoints, stats };
 }
+*/
