@@ -151,30 +151,30 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  const Sheet = game.ptu?.PTUPokemonTrainingSheet;
-  if (!Sheet) {
-    console.error("PTU | TrainingSheet não encontrado");
+  if (game.system.id !== "ptu") return;
+
+  const ActorClass = CONFIG.Actor.documentClass;
+  if (!ActorClass?.prototype?.prepareData) {
+    console.error("PTU | prepareData não encontrado");
     return;
   }
 
-  const original = Sheet.prototype._onDrop;
+  const original = ActorClass.prototype.prepareData;
 
-  Sheet.prototype._onDrop = async function (event) {
-    const data = JSON.parse(event.dataTransfer.getData("text/plain") || "{}");
-    const actor = data?.uuid ? await fromUuid(data.uuid) : null;
+  ActorClass.prototype.prepareData = function () {
+    original.call(this);
 
-    // Se estiver tentando dropar em training, força ignorar cap
-    const target = event.currentTarget?.dataset?.partyStatus;
-    if (target === "training" && actor?.type === "pokemon") {
-      // clona o actor para enganar a checagem
-      actor.system.level.current = -999;
-    }
+    if (this.type !== "pokemon") return;
 
-    return original.call(this, event);
+    if (!this.attributes?.level?.cap) return;
+
+    // FORÇA CAP DE TREINO
+    this.attributes.level.cap.training = 100;
   };
 
-  console.log("PTU | Level cap de treino REMOVIDO");
+  console.log("PTU | Level cap de treino forçado para 100");
 });
+
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
 
