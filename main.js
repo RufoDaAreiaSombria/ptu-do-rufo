@@ -151,46 +151,57 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
+  if (!game.ptu?.PTUPokemonTrainingSheet) return;
+
   const Sheet = game.ptu.PTUPokemonTrainingSheet;
 
-  if (!Sheet) return;
-
+  /* =============================
+     REMOVE CAP DO DRAG & DROP
+     ============================= */
   const originalOnDrop = Sheet.prototype._onDrop;
 
   Sheet.prototype._onDrop = async function (event) {
-    // intercepta os dados do drag
-    try {
-      const data = JSON.parse(event.dataTransfer.getData("text/plain"));
-      if (data?.type === "Actor") {
-        const actor = await fromUuid(data.uuid);
-        if (actor?.type === "pokemon") {
-          // força o cap a ser infinito
-          actor.attributes.level.cap.training = 100;
-        }
-      }
-    } catch (e) {}
+    const data = JSON.parse(event.dataTransfer.getData("text/plain") || "{}");
+    const actor = data?.uuid ? await fromUuid(data.uuid) : null;
+
+    if (actor?.type === "pokemon") {
+      // intercepta e clona sem os checks
+      const oldWarn = ui.notifications.warn;
+      ui.notifications.warn = () => {}; // silencia warning
+      const result = await originalOnDrop.call(this, event);
+      ui.notifications.warn = oldWarn;
+      return result;
+    }
 
     return originalOnDrop.call(this, event);
   };
-});
 
-Hooks.once("ready", () => {
-  const Sheet = game.ptu.PTUPokemonTrainingSheet;
-  if (!Sheet) return;
-
+  /* =============================
+     REMOVE CAP AO FINALIZAR
+     ============================= */
   const originalComplete = Sheet.prototype.completeTraining;
 
   Sheet.prototype.completeTraining = function (trainingType, trainingData) {
-    for (const key of Object.keys(trainingData)) {
-      const actor = game.actors.get(key);
-      if (actor?.type === "pokemon") {
-        actor.attributes.level.cap.training = Infinity;
-      }
-    }
+    let message = this.trainer.name + " has completed their daily training!<br>";
 
-    return originalComplete.call(this, trainingType, trainingData);
+    Object.entries(trainingData).forEach(([key, value]) => {
+      let actor = game.actors.get(key);
+      const instancesValue = parseInt(value) || 0;
+      if (!actor || instancesValue === 0) return;
+
+      const expValue = instancesValue * this.xpToDistribute;
+      const updatedXP = actor.system.level.exp + expValue;
+
+      message += actor.name + " gained " + expValue + " EXP (" + instancesValue + " instances)<br>";
+      actor.update({ "system.level.exp": updatedXP });
+    });
+
+    this.sendChatMessage(message);
   };
+
+  console.log("PTU Training | Level cap removido");
 });
+
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
