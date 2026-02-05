@@ -44,50 +44,6 @@ const NATURES = {
   Serious:   { up: "spd", down: "spd" }
 };
 
-async function applyCustomTraining(app, formData) {
-  const trainer = app.actor;
-  const flatBonus = Number(formData.flatBonus ?? 0);
-
-  const trainingTypes = Array.isArray(formData.trainingTypes)
-    ? formData.trainingTypes
-    : [formData.trainingTypes];
-
-  const selectedPokemon = getSelectedPokemon(app);
-
-  for (const pokemon of selectedPokemon) {
-    const exp = calculateTrainingExp(
-      pokemon,
-      trainer,
-      trainingTypes,
-      flatBonus
-    );
-
-    await pokemon.update({
-      "system.exp.value": pokemon.system.exp.value + exp
-    });
-  }
-
-  ui.notifications.info(
-    `Treino aplicado em ${selectedPokemon.length} Pokémon`
-  );
-}
-
-function calculateTrainingExp(pokemon, trainer, trainings, flatBonus) {
-  let exp = Math.floor(pokemon.system.level.value / 2);
-
-  const commandRank = trainer.system.skills.command.rank;
-  exp += commandRank * 5; // ajuste conforme sua tabela
-
-  if (trainerHasTrainerOfChampions(trainer)) {
-    exp += 5;
-  }
-
-  exp += flatBonus;
-
-  return Math.max(exp, 0);
-}
-
-
 function getNatureModifier(statKey, system) {
   const natureName = system.nature?.value;
   if (!natureName) return 0;
@@ -190,4 +146,96 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
     el.type = "checkbox";
     el.name = "trainingTypes";
   });
+});
+
+/*--------------------------- Tirar Level Cap -------------------------------*/
+
+Hooks.once("ready", () => {
+  for (const actor of game.actors.contents) {
+    if (actor.type === "pokemon") {
+      actor.attributes.level.cap.training = 100;
+    }
+  }
+});
+
+Hooks.on("createActor", (actor) => {
+  if (actor.type === "pokemon") {
+    actor.attributes.level.cap.training = 100;
+  }
+});
+
+/*--------------------------- Tirar Limite de Treinos -------------------------------*/
+
+Hooks.once("ready", () => {
+  const Sheet = game.ptu.PTUPokemonTrainingSheet;
+  if (!Sheet) return;
+
+  const originalPrepare = Sheet.prototype._prepare;
+
+  Sheet.prototype._prepare = function (...args) {
+    originalPrepare.call(this, ...args);
+
+    // deixa "infinito"
+    this.instancesOfTraining = 999999;
+  };
+});
+
+/*---------------------- Modificar a Fórmula de Treino ---------------------------*/
+
+Hooks.once("ready", () => {
+  const Sheet = game.ptu.PTUPokemonTrainingSheet;
+  if (!Sheet) return;
+
+  // sobrescreve o cálculo de XP
+  Sheet.prototype._calculateXPToDistribute = function () {
+    this.xpToDistribute = 0; // valor base, será recalculado por pokémon
+  };
+
+  // intercepta o completeTraining
+  const originalComplete = Sheet.prototype.completeTraining;
+
+  Sheet.prototype.completeTraining = function (trainingType, trainingData) {
+    const trainer = this.trainer;
+    const hasChampion = trainer.items?.some(i =>
+      i.name.toLowerCase().includes("trainer of champions")
+    );
+
+    // pega o rank numérico de Command
+    const commandRank = trainer.system?.skills?.command?.rank ?? 1;
+
+    let commandBonus = 0;
+    if (commandRank >= 8) commandBonus = 15;
+    else if (commandRank >= 5) commandBonus = 10;
+    else if (commandRank >= 3) commandBonus = 5;
+
+    // bônus flat digitado
+    const flatBonus = parseInt(this.form?.querySelector('input[name="flatBonus"]')?.value) || 0;
+
+    let message = trainer.name + " completou o treino!<br>";
+
+    Object.entries(trainingData).forEach(([key, value]) => {
+      const actor = game.actors.get(key);
+      if (!actor) return;
+
+      const instances = parseInt(value) || 0;
+      if (instances === 0) return;
+
+      const level = actor.system.level.current;
+      const base = Math.floor(level / 2);
+
+      const xpPerInstance =
+        base +
+        commandBonus +
+        (hasChampion ? 5 : 0) +
+        flatBonus;
+
+      const totalXP = xpPerInstance * instances;
+
+      actor.update({ "system.level.exp": actor.system.level.exp + totalXP });
+
+      message += `${actor.name} ganhou ${totalXP} EXP (${instances}× ${xpPerInstance})<br>`;
+    });
+
+    this.sendChatMessage(message);
+  };
 });
