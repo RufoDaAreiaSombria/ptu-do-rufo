@@ -129,3 +129,21 @@ function applyOldStatTotals(system) {
 
   system.levelUpPoints.value = levelUpPoints;
 }
+
+Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
+  // Campo de bônus flat
+  const bonusHtml = `
+    <div class="form-group">
+      <label>Bônus Flat de EXP</label>
+      <input type="number" name="flatBonus" value="0"/>
+    </div>
+  `;
+
+  html.find("button[type=submit]").before(bonusHtml);
+
+  // Permitir múltiplos treinos (checkbox)
+  html.find("input[name='training']").each((_, el) => {
+    el.type = "checkbox";
+    el.name = "trainingTypes";
+  });
+});
