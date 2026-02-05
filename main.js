@@ -153,34 +153,37 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 Hooks.once("ready", () => {
   if (game.system.id !== "ptu") return;
 
-  // Importa a classe Progress do sistema
-  const Progress = game.ptu?.util?.Progress;
-
-  if (!Progress) {
-    console.error("PTU | Progress util não encontrado");
+  // pega a classe da sheet
+  const Sheet = game.ptu?.apps?.PTUPokemonTrainingSheet;
+  if (!Sheet) {
+    console.error("PTU | PokemonTrainingSheet não encontrada");
     return;
   }
 
-  // Guarda o método original
-  const originalAddEXP = Progress.addEXP;
+  // guarda o método original
+  const originalPrepare = Sheet.prototype._prepare;
 
-  Progress.addEXP = function (actor, exp, options = {}) {
-    // chama o método original
-    const result = originalAddEXP.call(this, actor, exp, options);
+  Sheet.prototype._prepare = function (...args) {
+    // roda o original primeiro
+    originalPrepare.apply(this, args);
 
-    // AGORA sobrescrevemos o cap manualmente
-    const system = actor.system;
-    if (!system?.level) return result;
+    // REMOVE O LEVEL CAP DE TREINO
+    const allMons = [
+      ...(this.party ?? []),
+      ...(this.boxed ?? []),
+      ...(this.available ?? []),
+    ];
 
-    // Remove qualquer clamp artificial
-    system.level.current = system.level.current;
-    system.level.max = Infinity; // se existir
+    for (const actor of allMons) {
+      if (!actor?.attributes?.level?.cap) continue;
 
-    return result;
+      actor.attributes.level.cap.training = Infinity;
+    }
   };
 
-  console.log("PTU | Level cap de treino removido");
+  console.log("PTU | Level cap de treino removido com sucesso");
 });
+
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
