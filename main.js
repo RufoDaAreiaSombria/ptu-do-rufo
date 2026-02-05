@@ -151,9 +151,17 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  if (!game.ptu?.PTUPokemonTrainingSheet) return;
+  // pega a classe real que o Foundry está usando
+  const Sheet = Object.values(CONFIG).find(v =>
+    v?.name === "PTUPokemonTrainingSheet"
+  ) || game.ptu?.PTUPokemonTrainingSheet;
 
-  const Sheet = game.ptu.PTUPokemonTrainingSheet;
+  if (!Sheet) {
+    console.error("PTU | TrainingSheet não encontrada");
+    return;
+  }
+
+  console.log("PTU | Patching", Sheet.name);
 
   /* =============================
      REMOVE CAP DO DRAG & DROP
@@ -165,9 +173,9 @@ Hooks.once("ready", () => {
     const actor = data?.uuid ? await fromUuid(data.uuid) : null;
 
     if (actor?.type === "pokemon") {
-      // intercepta e clona sem os checks
+      // anula o warn
       const oldWarn = ui.notifications.warn;
-      ui.notifications.warn = () => {}; // silencia warning
+      ui.notifications.warn = () => {};
       const result = await originalOnDrop.call(this, event);
       ui.notifications.warn = oldWarn;
       return result;
@@ -185,22 +193,20 @@ Hooks.once("ready", () => {
     let message = this.trainer.name + " has completed their daily training!<br>";
 
     Object.entries(trainingData).forEach(([key, value]) => {
-      let actor = game.actors.get(key);
-      const instancesValue = parseInt(value) || 0;
-      if (!actor || instancesValue === 0) return;
+      const actor = game.actors.get(key);
+      const instances = parseInt(value) || 0;
+      if (!actor || instances === 0) return;
 
-      const expValue = instancesValue * this.xpToDistribute;
-      const updatedXP = actor.system.level.exp + expValue;
+      const exp = instances * this.xpToDistribute;
+      actor.update({ "system.level.exp": actor.system.level.exp + exp });
 
-      message += actor.name + " gained " + expValue + " EXP (" + instancesValue + " instances)<br>";
-      actor.update({ "system.level.exp": updatedXP });
+      message += `${actor.name} gained ${exp} EXP<br>`;
     });
 
     this.sendChatMessage(message);
   };
-
-  console.log("PTU Training | Level cap removido");
 });
+
 
 
 
