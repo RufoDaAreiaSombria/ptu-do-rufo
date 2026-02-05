@@ -151,19 +151,22 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("init", () => {
-  libWrapper.register("ptu-do-rufo",
-    "game.ptu.PTUTrainerActor.prototype.getExpTrainingData",
+  libWrapper.register(
+    "ptu-do-rufo",
+    "CONFIG.Actor.documentClass.prototype.getExpTrainingData",
     function (wrapped, ...args) {
       const data = wrapped(...args);
 
-      // força o cap
+      // Força cap fixo
       data.expTrainingLevelCap = 100;
 
+      console.log("PTU Mod | Cap forçado:", data);
       return data;
     },
     "WRAPPER"
   );
 });
+
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
