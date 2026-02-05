@@ -153,26 +153,21 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 Hooks.once("ready", () => {
   if (game.system.id !== "ptu") return;
 
-  const ActorPTR = CONFIG.Actor.documentClass;
-  if (!ActorPTR?.prototype?.getExpTrainingData) {
-    console.error("PTU | getExpTrainingData não encontrado");
-    return;
-  }
+  const ActorClass = CONFIG.Actor.documentClass;
+  const original = ActorClass.prototype.prepareData;
 
-  const original = ActorPTR.prototype.getExpTrainingData;
+  ActorClass.prototype.prepareData = function () {
+    original.call(this);
 
-  ActorPTR.prototype.getExpTrainingData = function () {
-    const data = original.call(this);
+    if (this.type !== "pokemon") return;
+    if (!this.attributes?.level?.cap) return;
 
     // FORÇA CAP DE TREINO
-    data.expTrainingLevelCap = 100;
-
-    return data;
+    this.attributes.level.cap.training = 100;
   };
 
-  console.log("PTU | Level cap de treino substituído para 100");
+  console.log("PTU | Level cap de treino forçado para 100");
 });
-
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
