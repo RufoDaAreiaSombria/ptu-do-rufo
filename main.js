@@ -151,7 +151,7 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("init", () => {
-  libWrapper.register("ptu",
+  libWrapper.register("ptu-do-rufo",
     "game.ptu.PTUTrainerActor.prototype.getExpTrainingData",
     function (wrapped, ...args) {
       const data = wrapped(...args);
