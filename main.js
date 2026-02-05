@@ -44,6 +44,85 @@ const NATURES = {
   Serious:   { up: "spd", down: "spd" }
 };
 
+function calculateTrainingExp(pokemon, trainer, trainings, flatBonus) {
+  let exp = Math.floor(pokemon.system.level.value / 2);
+
+  const commandRank = trainer.system.skills.command.rank;
+  exp += commandRank * 5; // ajuste sua tabela aqui
+
+  if (trainerHasTrainerOfChampions(trainer)) {
+    exp += 5;
+  }
+
+  exp += Number(flatBonus || 0);
+
+  return Math.max(exp, 0);
+}
+
+function trainerHasTrainerOfChampions(trainer) {
+  return trainer.items.some(
+    i => i.type === "edge" && i.name === "Trainer of Champions"
+  );
+}
+
+function patchTrainingSheet() {
+  const TrainingSheet =
+    window.PTUPokemonTrainingSheet ??
+    CONFIG.PTU?.applications?.PTUPokemonTrainingSheet;
+
+  if (!TrainingSheet) {
+    console.error("PTU Training Patch | Sheet não encontrada");
+    return;
+  }
+
+  const originalUpdate = TrainingSheet.prototype._updateObject;
+
+  TrainingSheet.prototype._updateObject = async function (event, formData) {
+    event.preventDefault();
+
+    await applyCustomTraining(this, formData);
+  };
+}
+
+async function applyCustomTraining(app, formData) {
+  const trainer = app.actor;
+  const flatBonus = Number(formData.flatBonus ?? 0);
+
+  const trainingTypes = Array.isArray(formData.trainingTypes)
+    ? formData.trainingTypes
+    : [formData.trainingTypes];
+
+  const selectedPokemon = getSelectedPokemon(app);
+
+  for (const pokemon of selectedPokemon) {
+    const exp = calculateTrainingExp(
+      pokemon,
+      trainer,
+      trainingTypes,
+      flatBonus
+    );
+
+    await pokemon.update({
+      "system.exp.value": pokemon.system.exp.value + exp
+    });
+  }
+
+  ui.notifications.info(
+    `Treino aplicado em ${selectedPokemon.length} Pokémon`
+  );
+}
+
+Hooks.on("renderPTUPokemonTrainingSheet", (app, html) => {
+  const bonusHtml = `
+    <div class="form-group">
+      <label>Bônus Flat de EXP</label>
+      <input type="number" name="flatBonus" value="0"/>
+    </div>
+  `;
+
+  html.find("button[type=submit]").before(bonusHtml);
+});
+
 function getNatureModifier(statKey, system) {
   const natureName = system.nature?.value;
   if (!natureName) return 0;
@@ -130,7 +209,7 @@ function applyOldStatTotals(system) {
   system.levelUpPoints.value = levelUpPoints;
 }
 
-Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
+/*Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
   // Campo de bônus flat
   const bonusHtml = `
     <div class="form-group">
@@ -146,4 +225,4 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
     el.type = "checkbox";
     el.name = "trainingTypes";
   });
-});
+});*/
