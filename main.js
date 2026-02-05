@@ -151,112 +151,41 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  const path = "CONFIG.Actor.documentClasses.character.prototype.getExpTrainingData";
+  if (game.system.id !== "ptu") return;
 
-  libWrapper.register(
-    "ptu-do-rufo",
-    path,
-    function (wrapped, ...args) {
-      const data = wrapped(...args);
-      data.expTrainingLevelCap = 100;
-      console.log("PTU Mod | Cap fixado em 100");
-      return data;
-    },
-    "WRAPPER"
-  );
+  // Importa a classe Progress do sistema
+  const Progress = game.ptu?.util?.Progress;
+
+  if (!Progress) {
+    console.error("PTU | Progress util não encontrado");
+    return;
+  }
+
+  // Guarda o método original
+  const originalAddEXP = Progress.addEXP;
+
+  Progress.addEXP = function (actor, exp, options = {}) {
+    // chama o método original
+    const result = originalAddEXP.call(this, actor, exp, options);
+
+    // AGORA sobrescrevemos o cap manualmente
+    const system = actor.system;
+    if (!system?.level) return result;
+
+    // Remove qualquer clamp artificial
+    system.level.current = system.level.current;
+    system.level.max = Infinity; // se existir
+
+    return result;
+  };
+
+  console.log("PTU | Level cap de treino removido");
 });
-
-
-Hooks.once("ready", () => {
-  const path = "game.ptu.apps.PTUPokemonTrainingSheet.prototype._prepareTrainingData";
-
-  libWrapper.register(
-    "ptu-do-rufo",
-    path,
-    function (wrapped, ...args) {
-      const result = wrapped(...args);
-      this.xpToDistribute = 100;
-      return result;
-    },
-    "WRAPPER"
-  );
-});
-
-
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
 
-/*Hooks.once("ready", () => {
-  const Sheet = game.ptu.PTUPokemonTrainingSheet;
-  if (!Sheet) return;
 
-  const originalPrepare = Sheet.prototype._prepare;
-
-  Sheet.prototype._prepare = function (...args) {
-    originalPrepare.call(this, ...args);
-
-    // deixa "infinito"
-    this.instancesOfTraining = 999999;
-  };
-});*/
 
 /*---------------------- Modificar a Fórmula de Treino ---------------------------*/
 
-/*Hooks.once("ready", () => {
-  const Sheet = game.ptu.PTUPokemonTrainingSheet;
-  if (!Sheet) return;
-
-  // sobrescreve o cálculo de XP
-  Sheet.prototype._calculateXPToDistribute = function () {
-    this.xpToDistribute = 0; // valor base, será recalculado por pokémon
-  };
-
-  // intercepta o completeTraining
-  const originalComplete = Sheet.prototype.completeTraining;
-
-  Sheet.prototype.completeTraining = function (trainingType, trainingData) {
-    const trainer = this.trainer;
-    const hasChampion = trainer.items?.some(i =>
-      i.name.toLowerCase().includes("trainer of champions")
-    );
-
-    // pega o rank numérico de Command
-    const commandRank = trainer.system?.skills?.command?.rank ?? 1;
-
-    let commandBonus = 0;
-    if (commandRank >= 8) commandBonus = 15;
-    else if (commandRank >= 5) commandBonus = 10;
-    else if (commandRank >= 3) commandBonus = 5;
-
-    // bônus flat digitado
-    const flatBonus = parseInt(this.form?.querySelector('input[name="flatBonus"]')?.value) || 0;
-
-    let message = trainer.name + " completou o treino!<br>";
-
-    Object.entries(trainingData).forEach(([key, value]) => {
-      const actor = game.actors.get(key);
-      if (!actor) return;
-
-      const instances = parseInt(value) || 0;
-      if (instances === 0) return;
-
-      const level = actor.system.level.current;
-      const base = Math.floor(level / 2);
-
-      const xpPerInstance =
-        base +
-        commandBonus +
-        (hasChampion ? 5 : 0) +
-        flatBonus;
-
-      const totalXP = xpPerInstance * instances;
-
-      actor.update({ "system.level.exp": actor.system.level.exp + totalXP });
-
-      message += `${actor.name} ganhou ${totalXP} EXP (${instances}× ${xpPerInstance})<br>`;
-    });
-
-    this.sendChatMessage(message);
-  };
-});*/
