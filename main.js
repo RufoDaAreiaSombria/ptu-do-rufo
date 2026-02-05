@@ -151,78 +151,30 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  // pega a classe real que o Foundry está usando
-  const Sheet = Object.values(CONFIG).find(v =>
-    v?.name === "PTUPokemonTrainingSheet"
-  ) || game.ptu?.PTUPokemonTrainingSheet;
-
+  const Sheet = game.ptu?.PTUPokemonTrainingSheet;
   if (!Sheet) {
-    console.error("PTU | TrainingSheet não encontrada");
+    console.error("PTU | TrainingSheet não encontrado");
     return;
   }
 
-  console.log("PTU | Patching", Sheet.name);
-
-  /* =============================
-     REMOVE CAP DO DRAG & DROP
-     ============================= */
-  const originalOnDrop = Sheet.prototype._onDrop;
+  const original = Sheet.prototype._onDrop;
 
   Sheet.prototype._onDrop = async function (event) {
     const data = JSON.parse(event.dataTransfer.getData("text/plain") || "{}");
     const actor = data?.uuid ? await fromUuid(data.uuid) : null;
 
-    if (actor?.type === "pokemon") {
-      // anula o warn
-      const oldWarn = ui.notifications.warn;
-      ui.notifications.warn = () => {};
-      const result = await originalOnDrop.call(this, event);
-      ui.notifications.warn = oldWarn;
-      return result;
+    // Se estiver tentando dropar em training, força ignorar cap
+    const target = event.currentTarget?.dataset?.partyStatus;
+    if (target === "training" && actor?.type === "pokemon") {
+      // clona o actor para enganar a checagem
+      actor.system.level.current = -999;
     }
 
-    return originalOnDrop.call(this, event);
+    return original.call(this, event);
   };
 
-  Hooks.once("ready", () => {
-  const originalWarn = ui.notifications.warn;
-
-  ui.notifications.warn = function (message, ...args) {
-    if (typeof message === "string" && message.includes("too high level")) {
-      console.log("PTU | Level cap de treino ignorado:", message);
-      return;
-    }
-    return originalWarn.call(this, message, ...args);
-  };
-
-  console.log("PTU | Filtro global de level cap ativo");
+  console.log("PTU | Level cap de treino REMOVIDO");
 });
-
-  /* =============================
-     REMOVE CAP AO FINALIZAR
-     ============================= */
-  const originalComplete = Sheet.prototype.completeTraining;
-
-  Sheet.prototype.completeTraining = function (trainingType, trainingData) {
-    let message = this.trainer.name + " has completed their daily training!<br>";
-
-    Object.entries(trainingData).forEach(([key, value]) => {
-      const actor = game.actors.get(key);
-      const instances = parseInt(value) || 0;
-      if (!actor || instances === 0) return;
-
-      const exp = instances * this.xpToDistribute;
-      actor.update({ "system.level.exp": actor.system.level.exp + exp });
-
-      message += `${actor.name} gained ${exp} EXP<br>`;
-    });
-
-    this.sendChatMessage(message);
-  };
-});
-
-
-
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
 
