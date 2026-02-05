@@ -151,18 +151,47 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  for (const actor of game.actors.contents) {
-    if (actor.type === "pokemon") {
-      actor.attributes.level.cap.training = 100;
-    }
-  }
+  const Sheet = game.ptu.PTUPokemonTrainingSheet;
+
+  if (!Sheet) return;
+
+  const originalOnDrop = Sheet.prototype._onDrop;
+
+  Sheet.prototype._onDrop = async function (event) {
+    // intercepta os dados do drag
+    try {
+      const data = JSON.parse(event.dataTransfer.getData("text/plain"));
+      if (data?.type === "Actor") {
+        const actor = await fromUuid(data.uuid);
+        if (actor?.type === "pokemon") {
+          // força o cap a ser infinito
+          actor.attributes.level.cap.training = 100;
+        }
+      }
+    } catch (e) {}
+
+    return originalOnDrop.call(this, event);
+  };
 });
 
-Hooks.on("createActor", (actor) => {
-  if (actor.type === "pokemon") {
-    actor.attributes.level.cap.training = 100;
-  }
+Hooks.once("ready", () => {
+  const Sheet = game.ptu.PTUPokemonTrainingSheet;
+  if (!Sheet) return;
+
+  const originalComplete = Sheet.prototype.completeTraining;
+
+  Sheet.prototype.completeTraining = function (trainingType, trainingData) {
+    for (const key of Object.keys(trainingData)) {
+      const actor = game.actors.get(key);
+      if (actor?.type === "pokemon") {
+        actor.attributes.level.cap.training = Infinity;
+      }
+    }
+
+    return originalComplete.call(this, trainingType, trainingData);
+  };
 });
+
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
 
