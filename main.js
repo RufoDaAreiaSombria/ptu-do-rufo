@@ -153,36 +153,37 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 Hooks.once("ready", () => {
   if (game.system.id !== "ptu") return;
 
-  // pega a classe da sheet
   const Sheet = game.ptu?.apps?.PTUPokemonTrainingSheet;
   if (!Sheet) {
-    console.error("PTU | PokemonTrainingSheet não encontrada");
+    console.error("PTU | TrainingSheet não encontrada");
     return;
   }
 
-  // guarda o método original
-  const originalPrepare = Sheet.prototype._prepare;
+  const proto = Sheet.prototype;
 
-  Sheet.prototype._prepare = function (...args) {
-    // roda o original primeiro
-    originalPrepare.apply(this, args);
+  for (const key of Object.getOwnPropertyNames(proto)) {
+    if (typeof proto[key] !== "function") continue;
 
-    // REMOVE O LEVEL CAP DE TREINO
-    const allMons = [
-      ...(this.party ?? []),
-      ...(this.boxed ?? []),
-      ...(this.available ?? []),
-    ];
+    if (
+      key.toLowerCase().includes("drop") ||
+      key.toLowerCase().includes("train") ||
+      key.toLowerCase().includes("validate") ||
+      key.toLowerCase().includes("can")
+    ) {
+      const original = proto[key];
 
-    for (const actor of allMons) {
-      if (!actor?.attributes?.level?.cap) continue;
-
-      actor.attributes.level.cap.training = Infinity;
+      proto[key] = function (...args) {
+        console.log(`[PTU DEBUG] ${key} chamado`, args);
+        const result = original.apply(this, args);
+        console.log(`[PTU DEBUG] ${key} retornou`, result);
+        return result;
+      };
     }
-  };
+  }
 
-  console.log("PTU | Level cap de treino removido com sucesso");
+  console.log("PTU | Debug de drag & drop ativo");
 });
+
 
 
 
