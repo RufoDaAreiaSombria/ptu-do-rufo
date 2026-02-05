@@ -184,6 +184,20 @@ Hooks.once("ready", () => {
     return originalOnDrop.call(this, event);
   };
 
+  Hooks.once("ready", () => {
+  const originalWarn = ui.notifications.warn;
+
+  ui.notifications.warn = function (message, ...args) {
+    if (typeof message === "string" && message.includes("too high level")) {
+      console.log("PTU | Level cap de treino ignorado:", message);
+      return;
+    }
+    return originalWarn.call(this, message, ...args);
+  };
+
+  console.log("PTU | Filtro global de level cap ativo");
+});
+
   /* =============================
      REMOVE CAP AO FINALIZAR
      ============================= */
