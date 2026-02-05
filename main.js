@@ -150,29 +150,25 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
-Hooks.once("ready", () => {
-  if (game.system.id !== "ptu") return;
+Hooks.once("init", () => {
+  libWrapper.register("seu-modulo-id",
+    "game.ptu.PTUTrainerActor.prototype.getExpTrainingData",
+    function (wrapped, ...args) {
+      const data = wrapped(...args);
 
-  const ActorClass = CONFIG.Actor.documentClass;
-  const original = ActorClass.prototype.prepareData;
+      // força o cap
+      data.expTrainingLevelCap = 100;
 
-  ActorClass.prototype.prepareData = function () {
-    original.call(this);
-
-    if (this.type !== "pokemon") return;
-    if (!this.attributes?.level?.cap) return;
-
-    // FORÇA CAP DE TREINO
-    this.attributes.level.cap.training = 100;
-  };
-
-  console.log("PTU | Level cap de treino forçado para 100");
+      return data;
+    },
+    "WRAPPER"
+  );
 });
 
 
 /*--------------------------- Tirar Limite de Treinos -------------------------------*/
 
-Hooks.once("ready", () => {
+/*Hooks.once("ready", () => {
   const Sheet = game.ptu.PTUPokemonTrainingSheet;
   if (!Sheet) return;
 
@@ -184,11 +180,11 @@ Hooks.once("ready", () => {
     // deixa "infinito"
     this.instancesOfTraining = 999999;
   };
-});
+});*/
 
 /*---------------------- Modificar a Fórmula de Treino ---------------------------*/
 
-Hooks.once("ready", () => {
+/*Hooks.once("ready", () => {
   const Sheet = game.ptu.PTUPokemonTrainingSheet;
   if (!Sheet) return;
 
@@ -244,4 +240,4 @@ Hooks.once("ready", () => {
 
     this.sendChatMessage(message);
   };
-});
+});*/
