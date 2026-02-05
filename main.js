@@ -151,43 +151,28 @@ Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
 /*--------------------------- Tirar Level Cap -------------------------------*/
 
 Hooks.once("ready", () => {
-  const CharClass = CONFIG.Actor.documentClasses.character;
-
-  if (!CharClass) {
-    console.error("PTU Mod | Classe character não encontrada");
-    return;
-  }
+  const path = "CONFIG.Actor.documentClasses.character.prototype.getExpTrainingData";
 
   libWrapper.register(
     "ptu-do-rufo",
-    CharClass.prototype,
-    "getExpTrainingData",
+    path,
     function (wrapped, ...args) {
       const data = wrapped(...args);
-
       data.expTrainingLevelCap = 100;
-
-      console.log("PTU Mod | Cap aplicado:", data.expTrainingLevelCap);
+      console.log("PTU Mod | Cap fixado em 100");
       return data;
     },
     "WRAPPER"
   );
 });
 
-Hooks.once("ready", () => {
-  const SheetClass = Object.values(CONFIG.Actor.sheetClasses.character)
-    .flatMap(s => s)
-    .find(s => s.cls.name.includes("PokemonTraining"));
 
-  if (!SheetClass) {
-    console.warn("PTU Mod | Training sheet não encontrado");
-    return;
-  }
+Hooks.once("ready", () => {
+  const path = "game.ptu.apps.PTUPokemonTrainingSheet.prototype._prepareTrainingData";
 
   libWrapper.register(
     "ptu-do-rufo",
-    SheetClass.cls.prototype,
-    "_prepareTrainingData",
+    path,
     function (wrapped, ...args) {
       const result = wrapped(...args);
       this.xpToDistribute = 100;
