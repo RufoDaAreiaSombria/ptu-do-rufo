@@ -18,7 +18,7 @@ export class CustomTrainingSheet extends FormApplication {
             classes: ["ptu", "sheet", "party", "training"],
             width: 637,
             height: 600,
-            template: 'modules/ptu-do-rufo/training-custom.hbs',
+            template: 'modules/ptu-do-rufo/templates/training-custom.hbs',
             dragDrop: [
                 { dragSelector: ".party-list .party-item.draggable", dropSelector: ".party-list.droppable" },
                 { dragSelector: undefined, dropSelector: '.party-list.droppable' },
