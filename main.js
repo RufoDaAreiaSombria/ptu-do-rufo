@@ -155,13 +155,19 @@ function applyOldStatTotals(system) {
 Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
   if (sheet.actor?.type !== "character") return;
 
-  const idx = buttons.findIndex(b => b.class?.includes("training"));
-  if (idx === -1) return;
+  const idx = buttons.findIndex(b =>
+    typeof b.class === "string" &&
+    b.class.includes("training-screen")
+  );
 
-  // substitui o botão original
+  if (idx === -1) {
+    console.warn("PTU | Botão training-screen não encontrado", buttons);
+    return;
+  }
+
   buttons[idx] = {
     label: "Training (Custom)",
-    class: "custom-training",
+    class: "training-screen",
     icon: "fas fa-gem",
     onclick: () => {
       new CustomTrainingSheet(sheet.actor).render(true);
