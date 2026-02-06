@@ -44,6 +44,28 @@ const NATURES = {
   Serious:   { up: "spd", down: "spd" }
 };
 
+class CustomTrainingSheet extends Application {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      title: "Esmeralda",
+      width: 400,
+      height: 200,
+      template: "modules/ptu-do-rufo/treinocustom.hbs",
+      classes: ["ptu", "custom-training"]
+    });
+  }
+
+  constructor(trainer) {
+    super();
+    this.trainer = trainer;
+  }
+
+  getData() {
+    return { name: this.trainer.name };
+  }
+}
+
+
 function getNatureModifier(statKey, system) {
   const natureName = system.nature?.value;
   if (!natureName) return 0;
@@ -130,66 +152,21 @@ function applyOldStatTotals(system) {
   system.levelUpPoints.value = levelUpPoints;
 }
 
-Hooks.on("renderPTUPokemonTrainingSheet", (app, html, data) => {
-  // Campo de bônus flat
-  const bonusHtml = `
-    <div class="form-group">
-      <label>Bônus Flat de EXP</label>
-      <input type="number" name="flatBonus" value="0"/>
-    </div>
-  `;
+Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
+  if (sheet.actor?.type !== "character") return;
 
-  html.find("button[type=submit]").before(bonusHtml);
+  const idx = buttons.findIndex(b => b.class?.includes("training"));
+  if (idx === -1) return;
 
-  // Permitir múltiplos treinos (checkbox)
-  html.find("input[name='training']").each((_, el) => {
-    el.type = "checkbox";
-    el.name = "trainingTypes";
-  });
-});
-
-/*--------------------------- Tirar Level Cap -------------------------------*/
-
-Hooks.once("ready", () => {
-  if (game.system.id !== "ptu") return;
-
-  const Sheet = game.ptu?.apps?.PTUPokemonTrainingSheet;
-  if (!Sheet) {
-    console.error("PTU | TrainingSheet não encontrada");
-    return;
-  }
-
-  const proto = Sheet.prototype;
-
-  for (const key of Object.getOwnPropertyNames(proto)) {
-    if (typeof proto[key] !== "function") continue;
-
-    if (
-      key.toLowerCase().includes("drop") ||
-      key.toLowerCase().includes("train") ||
-      key.toLowerCase().includes("validate") ||
-      key.toLowerCase().includes("can")
-    ) {
-      const original = proto[key];
-
-      proto[key] = function (...args) {
-        console.log(`[PTU DEBUG] ${key} chamado`, args);
-        const result = original.apply(this, args);
-        console.log(`[PTU DEBUG] ${key} retornou`, result);
-        return result;
-      };
+  // substitui o botão original
+  buttons[idx] = {
+    label: "Training (Custom)",
+    class: "custom-training",
+    icon: "fas fa-gem",
+    onclick: () => {
+      new CustomTrainingSheet(sheet.actor).render(true);
     }
-  }
+  };
 
-  console.log("PTU | Debug de drag & drop ativo");
+  console.log("PTU | Botão de training sequestrado");
 });
-
-
-
-
-/*--------------------------- Tirar Limite de Treinos -------------------------------*/
-
-
-
-/*---------------------- Modificar a Fórmula de Treino ---------------------------*/
-
