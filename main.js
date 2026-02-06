@@ -152,25 +152,23 @@ function applyOldStatTotals(system) {
   system.levelUpPoints.value = levelUpPoints;
 }
 
-Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
+Hooks.on("renderActorSheet", (sheet, html) => {
   if (sheet.actor?.type !== "character") return;
 
-  const idx = buttons.findIndex(b => b.class === "training-screen");
+  const btn = html.find('a.header-button.control.training-screen');
 
-  if (idx === -1) {
-    console.warn("PTU | Botão training-screen não encontrado", buttons);
+  if (!btn.length) {
+    console.warn("PTU | Botão training-screen não encontrado no DOM");
     return;
   }
 
-  buttons[idx] = {
-    label: "Training (Custom)",
-    class: "training-screen",
-    icon: "fas fa-gem",
-    onclick: () => {
-      new CustomTrainingSheet(sheet.actor).render(true);
-    }
-  };
+  btn.off("click"); // remove o original
+  btn.on("click", ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    new CustomTrainingSheet(sheet.actor).render(true);
+  });
 
-  console.log("PTU | Botão de training sequestrado");
+  console.log("PTU | Botão de training DOM sequestrado");
 });
 
