@@ -14,7 +14,7 @@ export class CustomTrainingSheet extends FormApplication {
 
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
-            title: "Esmeralda",
+            title: "PTU.PokemonTrainingSheet.Title",
             classes: ["ptu", "sheet", "party", "training"],
             width: 637,
             height: 600,
