@@ -1,3 +1,5 @@
+import { CustomTrainingSheet } from "./custom-training.js";
+
 const NATURES = {
   Cuddly:    { up: "hp", down: "atk" },
   Distracted:{ up: "hp", down: "def" },
@@ -43,28 +45,6 @@ const NATURES = {
   Quirky:    { up: "spdef", down: "spdef" },
   Serious:   { up: "spd", down: "spd" }
 };
-
-class CustomTrainingSheet extends Application {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      title: "Esmeralda",
-      width: 400,
-      height: 200,
-      template: "modules/ptu-do-rufo/treinocustom.hbs",
-      classes: ["ptu", "custom-training"]
-    });
-  }
-
-  constructor(trainer) {
-    super();
-    this.trainer = trainer;
-  }
-
-  getData() {
-    return { name: this.trainer.name };
-  }
-}
-
 
 function getNatureModifier(statKey, system) {
   const natureName = system.nature?.value;
