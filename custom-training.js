@@ -665,4 +665,4 @@ export class CustomTrainingSheet extends FormApplication {
     }
 }
 
-export { PTUPokemonTrainingSheet }
+export { CustomTrainingSheet }
