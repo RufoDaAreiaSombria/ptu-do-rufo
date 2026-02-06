@@ -155,20 +155,23 @@ function applyOldStatTotals(system) {
 Hooks.on("renderActorSheet", (sheet, html) => {
   if (sheet.actor?.type !== "character") return;
 
-  const btn = html.find('a.header-button.control.training-screen');
+  const btn = html[0].querySelector("a.header-button.control.training-screen");
+  if (!btn) return;
 
-  if (!btn.length) {
-    console.warn("PTU | Botão training-screen não encontrado no DOM");
-    return;
-  }
+  // remove todos os handlers existentes
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
 
-  btn.off("click"); // remove o original
-  btn.on("click", ev => {
+  // captura antes de qualquer outro
+  newBtn.addEventListener("click", ev => {
     ev.preventDefault();
+    ev.stopImmediatePropagation();
     ev.stopPropagation();
-    new CustomTrainingSheet(sheet.actor).render(true);
-  });
 
-  console.log("PTU | Botão de training DOM sequestrado");
+    new CustomTrainingSheet(sheet.actor).render(true);
+  }, true); // 👈 capture phase
+
+  console.log("PTU | Training button totalmente sequestrado");
 });
+
 
