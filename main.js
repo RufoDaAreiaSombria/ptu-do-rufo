@@ -156,8 +156,7 @@ Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
   if (sheet.actor?.type !== "character") return;
 
   const idx = buttons.findIndex(b =>
-    typeof b.class === "string" &&
-    b.class.includes("training-screen")
+    Array.isArray(b.class) && b.class.includes("training-screen")
   );
 
   if (idx === -1) {
@@ -167,7 +166,7 @@ Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
 
   buttons[idx] = {
     label: "Training (Custom)",
-    class: "training-screen",
+    class: ["training-screen"],
     icon: "fas fa-gem",
     onclick: () => {
       new CustomTrainingSheet(sheet.actor).render(true);
