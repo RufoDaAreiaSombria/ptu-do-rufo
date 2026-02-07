@@ -148,6 +148,7 @@ Hooks.on("renderActorSheet", (sheet, html) => {
     ev.stopImmediatePropagation();
     ev.stopPropagation();
 
+    console.log("CUSTOM TRAINING CLICK");
     new CustomTrainingSheet(sheet.actor).render(true);
   }, true); // 👈 capture phase
 

@@ -1,5 +1,7 @@
 import { Progress } from "../../../util/progress.js";
 
+console.log("CUSTOM TRAINING LOADED");
+
 export class CustomTrainingSheet extends FormApplication {
     constructor({ actor, ...options } = {}) {
         if (!actor) throw new Error("PTU.PokemonTrainingSheet.NoActor");
@@ -10,6 +12,7 @@ export class CustomTrainingSheet extends FormApplication {
         this.training = [];
         this.instancesOfTraining = 6;
         this._prepare(actor, options.strict);
+         console.log("CUSTOM TRAINING CONSTRUCTOR", trainer.name);
     }
 
     static get defaultOptions() {
